@@ -1,27 +1,36 @@
 import streamlit as st
 from pathlib import Path
+import csv
+from datetime import datetime
 
 st.set_page_config(page_title="Homework Submission Tracker", page_icon="📘")
 
 BASE_DIR = Path(__file__).resolve().parent
-FILE_PATH = BASE_DIR / "list" / "HW_LIST.txt"
+FILE_PATH = BASE_DIR / "list" / "HW_LIST.csv"
+
+HEADERS = ["Date", "Level", "Subject", "Homework", "Student"]
 
 
-def load_names():
+def ensure_file_exists():
+    FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
     if not FILE_PATH.exists():
-        FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        FILE_PATH.write_text("", encoding="utf-8")
-    with open(FILE_PATH, "r", encoding="utf-8") as f:
-        return f.readlines()
+        with open(FILE_PATH, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(HEADERS)
 
 
-def save_names(names):
-    with open(FILE_PATH, "w", encoding="utf-8") as f:
-        f.writelines(names)
+def load_records():
+    ensure_file_exists()
+    with open(FILE_PATH, "r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        return list(reader)
 
 
-def is_digits_only(text):
-    return text.isdigit()
+def save_records(records):
+    with open(FILE_PATH, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=HEADERS)
+        writer.writeheader()
+        writer.writerows(records)
 
 
 def is_letters_only(text):
@@ -31,115 +40,167 @@ def is_letters_only(text):
 
 st.title("Homework Submission Tracker")
 
-# st.write("File location:", FILE_PATH)
+records = load_records()
 
-names = load_names()
-
-st.subheader("Students who did not submit homework")
-
-if names:
-    for name in names:
-        st.write(name.strip())
-else:
-    st.info("No records found yet.")
-
-tab1, tab2 = st.tabs(["Add records", "Remove records"])
+tab1, tab2 = st.tabs(["View Records", "Add / Remove Records"])
 
 with tab1:
-    st.subheader("Add students who did not submit")
+    st.subheader("Find Records")
 
-    with st.form("add_form"):
-        hwname = st.text_input("Homework name")
-        numofnames = st.text_input("Number of students")
+    if records:
+        levels = sorted(set(r["Level"] for r in records if r["Level"]))
+        subjects = sorted(set(r["Subject"] for r in records if r["Subject"]))
+        homework_list = sorted(set(r["Homework"] for r in records if r["Homework"]))
 
-        submitted_names = []
-        count_valid = numofnames.isdigit()
+        selected_level = st.selectbox("Filter by Level", ["All"] + levels)
+        selected_subject = st.selectbox("Filter by Subject", ["All"] + subjects)
+        selected_homework = st.selectbox("Filter by Homework", ["All"] + homework_list)
+        student_search = st.text_input("Search student name")
 
-        if count_valid and int(numofnames) > 0:
-            for i in range(int(numofnames)):
-                submitted_names.append(
-                    st.text_input(f"Enter student's name #{i+1}")
-                )
+        filtered = records
 
-        add_submit = st.form_submit_button("Save records")
+        if selected_level != "All":
+            filtered = [r for r in filtered if r["Level"] == selected_level]
 
-        if add_submit:
-            if not hwname.strip():
-                st.error("Please enter the homework name.")
-            elif not is_digits_only(numofnames):
-                st.error("Number of students must be digits only.")
-            else:
-                num = int(numofnames)
-                if num <= 0:
-                    st.error("Number of students must be at least 1.")
-                elif len(submitted_names) != num:
-                    st.error("Please fill in all student name fields.")
-                else:
-                    invalid_names = [
-                        n for n in submitted_names
-                        if not n.strip() or not is_letters_only(n.strip())
-                    ]
+        if selected_subject != "All":
+            filtered = [r for r in filtered if r["Subject"] == selected_subject]
 
-                    if invalid_names:
-                        st.error("Student names must contain letters only.")
-                    else:
-                        updated_names = load_names()
+        if selected_homework != "All":
+            filtered = [r for r in filtered if r["Homework"] == selected_homework]
 
-                        existing_records = {
-                            line.strip().lower() for line in updated_names
-                        }
+        if student_search.strip():
+            filtered = [
+                r for r in filtered
+                if student_search.lower() in r["Student"].lower()
+            ]
 
-                        added_records = []
-                        skipped_records = []
+        st.write(f"Showing {len(filtered)} record(s)")
 
-                        for student_name in submitted_names:
-                            record = f"{hwname.strip()}: {student_name.strip()}"
-                            record_key = record.lower()
+        grouped = {}
 
-                            if record_key in existing_records:
-                                skipped_records.append(record)
-                            else:
-                                updated_names.append(record + "\n")
-                                existing_records.add(record_key)
-                                added_records.append(record)
+        for r in filtered:
+            key = f"{r['Level']} | {r['Subject']} | {r['Homework']}"
+            grouped.setdefault(key, []).append(r)
 
-                        save_names(updated_names)
+        for group, items in grouped.items():
+            with st.expander(group, expanded=True):
+                for item in items:
+                    st.write(f"- {item['Student']}  |  Added on: {item['Date']}")
 
-                        if added_records:
-                            st.success(f"{len(added_records)} record(s) added successfully.")
-
-                        if skipped_records:
-                            st.warning(
-                                "These duplicate record(s) were skipped:\n\n- "
-                                + "\n- ".join(skipped_records)
-                            )
-
-                        if added_records:
-                            st.rerun()
+    else:
+        st.info("No records found yet.")
 
 with tab2:
-    st.subheader("Remove existing records")
+    st.subheader("Add Records")
 
-    current_names = load_names()
-
-    if current_names:
-        options = [line.strip() for line in current_names]
-
-        selected_records = st.multiselect(
-            "Select record(s) to remove",
-            options
+    with st.form("add_form"):
+        level = st.selectbox(
+            "Primary Level",
+            ["Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6"]
         )
 
-        if st.button("Remove selected record(s)"):
-            if not selected_records:
-                st.error("Please select at least one record to remove.")
+        subject = st.selectbox(
+            "Subject",
+            ["English", "Chinese", "Math", "Science", "Higher Chinese", "Others"]
+        )
+
+        homework = st.text_input("Homework name")
+        num_students = st.text_input("Number of students")
+
+        student_names = []
+
+        if num_students.isdigit() and int(num_students) > 0:
+            for i in range(int(num_students)):
+                student_names.append(st.text_input(f"Student name #{i + 1}"))
+
+        submitted = st.form_submit_button("Save Records")
+
+        if submitted:
+            if not homework.strip():
+                st.error("Please enter the homework name.")
+            elif not num_students.isdigit():
+                st.error("Number of students must be digits only.")
             else:
-                updated_names = [
-                    line for line in current_names
-                    if line.strip() not in selected_records
+                invalid_names = [
+                    name for name in student_names
+                    if not name.strip() or not is_letters_only(name.strip())
                 ]
-                save_names(updated_names)
-                st.success("Selected record(s) removed successfully.")
-                st.rerun()
+
+                if invalid_names:
+                    st.error("Student names must contain letters only.")
+                else:
+                    current_records = load_records()
+
+                    existing_keys = {
+                        (
+                            r["Level"].lower(),
+                            r["Subject"].lower(),
+                            r["Homework"].lower(),
+                            r["Student"].lower()
+                        )
+                        for r in current_records
+                    }
+
+                    added = 0
+                    skipped = []
+
+                    for student in student_names:
+                        new_key = (
+                            level.lower(),
+                            subject.lower(),
+                            homework.strip().lower(),
+                            student.strip().lower()
+                        )
+
+                        if new_key in existing_keys:
+                            skipped.append(student.strip())
+                        else:
+                            current_records.append({
+                                "Date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                                "Level": level,
+                                "Subject": subject,
+                                "Homework": homework.strip(),
+                                "Student": student.strip()
+                            })
+                            existing_keys.add(new_key)
+                            added += 1
+
+                    save_records(current_records)
+
+                    if added:
+                        st.success(f"{added} record(s) added successfully.")
+
+                    if skipped:
+                        st.warning(
+                            "Duplicate record(s) skipped: " + ", ".join(skipped)
+                        )
+
+                    st.rerun()
+
+    st.divider()
+
+    st.subheader("Remove Records")
+
+    records = load_records()
+
+    if records:
+        options = [
+            f"{r['Level']} | {r['Subject']} | {r['Homework']} | {r['Student']} | {r['Date']}"
+            for r in records
+        ]
+
+        selected = st.multiselect("Select record(s) to remove", options)
+
+        if st.button("Remove Selected Record(s)"):
+            updated_records = []
+
+            for r in records:
+                label = f"{r['Level']} | {r['Subject']} | {r['Homework']} | {r['Student']} | {r['Date']}"
+                if label not in selected:
+                    updated_records.append(r)
+
+            save_records(updated_records)
+            st.success("Selected record(s) removed.")
+            st.rerun()
     else:
         st.info("No records available to remove.")
