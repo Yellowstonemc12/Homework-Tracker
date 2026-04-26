@@ -68,13 +68,13 @@ with tab1:
         student_search = ""
 
     if st.session_state.show_filters:
-        with st.container(border=True):
-            st.write("🔎 Filters")
-
-            selected_level = st.selectbox("Filter by Level", ["All"] + levels)
-            selected_subject = st.selectbox("Filter by Subject", ["All"] + subjects)
-            selected_homework = st.selectbox("Filter by Homework", ["All"] + homework_list)
-            student_search = st.text_input("Search student name")
+            with st.container(border=True):
+                st.write("🔎 Filters")
+    
+                selected_level = st.selectbox("Filter by Level", ["All"] + levels)
+                selected_subject = st.selectbox("Filter by Subject", ["All"] + subjects)
+                selected_homework = st.selectbox("Filter by Homework", ["All"] + homework_list)
+                student_search = st.text_input("Search student name")
 
         filtered = records
 
