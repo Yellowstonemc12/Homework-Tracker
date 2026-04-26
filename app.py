@@ -5,7 +5,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="Homework Submission Tracker", page_icon="📘")
 
-BASE_DIR = Path(file).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent
 FILE_PATH = BASE_DIR / "list" / "HW_LIST.csv"
 
 HEADERS = ["Date", "Level", "Subject", "Homework", "Student"]
