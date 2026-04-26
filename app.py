@@ -20,7 +20,8 @@ def ensure_file_exists():
 def load_records():
     ensure_file_exists()
     with open(FILE_PATH, "r", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)return list(reader)
+        reader = csv.DictReader(f)
+    return list(reader)
 
 def save_records(records):
     with open(FILE_PATH, "w", newline="", encoding="utf-8") as f:
