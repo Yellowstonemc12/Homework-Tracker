@@ -45,7 +45,17 @@ records = load_records()
 tab1, tab2 = st.tabs(["View Records", "Add / Remove Records"])
 
 with tab1:
-    st.subheader("Find Records")
+    col_title, col_btn = st.columns([6, 1])
+
+    with col_title:
+        st.subheader("Find Records")
+
+    with col_btn:
+        if "show_filters" not in st.session_state:
+            st.session_state.show_filters = False
+
+        if st.button("🔎"):
+            st.session_state.show_filters = not st.session_state.show_filters
 
     if records:
         levels = sorted(set(r["Level"] for r in records if r["Level"]))
