@@ -88,10 +88,21 @@ with tab1:
             key = f"{r['Level']} | {r['Subject']} | {r['Homework']}"
             grouped.setdefault(key, []).append(r)
 
-        for group, items in grouped.items():
-            with st.expander(group, expanded=True):
-                for item in items:
-                    st.write(f"- {item['Student']}  |  Added on: {item['Date']}")
+        # Sort groups by oldest date first
+        sorted_groups = sorted(grouped.items(), key=lambda x: x[1][0]["Date"])
+        
+        col1, col2 = st.columns(2)
+        
+        for i, (group, items) in enumerate(sorted_groups):
+            target_col = col1 if i % 2 == 0 else col2
+        
+            # Sort students inside each group by oldest date first
+            items = sorted(items, key=lambda x: x["Date"])
+        
+            with target_col:
+                with st.expander(group, expanded=True):
+                    for item in items:
+                        st.write(f"- {item['Student']}  |  Added on: {item['Date']}")
 
     else:
         st.info("No records found yet.")
