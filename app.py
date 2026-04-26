@@ -10,6 +10,14 @@ FILE_PATH = BASE_DIR / "list" / "HW_LIST.csv"
 
 HEADERS = ["Date", "Level", "Subject", "Homework", "Student"]
 
+# all your functions here...
+
+st.title("Homework Submission Tracker")
+
+records = load_records()
+
+tab1, tab2 = st.tabs(["View Records", "Add / Remove Records"])
+
 with tab1:
     col_title, col_btn = st.columns([6, 1])
 
