@@ -67,7 +67,10 @@ with tab1:
         selected_homework = "All"
         student_search = ""
 
-        if st.session_state.show_filters:
+    if st.session_state.show_filters:
+        with st.container(border=True):
+            st.write("🔎 Filters")
+
             selected_level = st.selectbox("Filter by Level", ["All"] + levels)
             selected_subject = st.selectbox("Filter by Subject", ["All"] + subjects)
             selected_homework = st.selectbox("Filter by Homework", ["All"] + homework_list)
