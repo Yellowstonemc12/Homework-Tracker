@@ -137,8 +137,8 @@ with tab2:
         if submitted:
             if not homework.strip():
                 st.error("Please enter the homework name.")
-            elif not num_students.isdigit():
-                st.error("Number of students must be digits only.")
+            elif num_students < 1:
+                st.error("Number of students must be at least 1.")
             else:
                 invalid_names = [
                     name for name in student_names
